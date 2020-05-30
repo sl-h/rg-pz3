@@ -61,6 +61,13 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Model\LineEntity.cs" />
+    <Compile Include="Model\NodeEntity.cs" />
+    <Compile Include="Model\Point.cs" />
+    <Compile Include="Model\PowerEntity.cs" />
+    <Compile Include="Model\SubstationEntity.cs" />
+    <Compile Include="Model\SwitchEntity.cs" />
+    <Compile Include="Utility.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -69,6 +76,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="PositionMapper.cs" />
     <Compile Include="UIControls\MainWindow.MainWindow.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
@@ -97,7 +105,7 @@
     <None Include="Assets\Models\Ferrari.obj" />
     <None Include="Assets\Models\Laptop.obj" />
     <None Include="Assets\Models\park.3ds" />
-    <None Include="Assets\Models\Winged_Victory.obj" />
+    <None Include="UIControls\Winged_Victory.obj" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
