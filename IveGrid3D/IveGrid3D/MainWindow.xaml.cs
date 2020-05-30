@@ -4,7 +4,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
-using System.Windows.Shapes;
 using System.Xml;
 using HelixToolkit.Wpf;
 using WpfApp1.Model;
@@ -14,14 +13,24 @@ namespace IveGrid3D
     // Todo: +Calculate delta coefficient (min max coordinate to min max positions in 3d scene)
     // Todo: +Coordinate to position 
     // Todo: +Create and place cubes 
+    // Todo: Lines 
 
     public class ObjectWrapper
     {
         public GeometryModel3D Model { get; }
-
+        public double X;
+        public double Y;
+        public double Z;
         public ObjectWrapper(GeometryModel3D model)
         {
             this.Model = model;
+            X = model.Bounds.Location.X;
+            Y = model.Bounds.Location.Y;
+            Z = model.Bounds.Location.Z;
+            if (Model != null)
+            {
+
+            }
         }
     }
 
@@ -32,6 +41,7 @@ namespace IveGrid3D
         private const string ImagePath = @"D:\fax\rg_pz3\IveGrid3D\IveGrid3D\Assets\Images\map.jpg";
         private readonly Model3DGroup mainModel3DGroup = new Model3DGroup();
         private PositionMapper mapper;
+        private readonly List<ObjectWrapper> instantiatedObject = new List<ObjectWrapper>();
 
         public MainWindow()
         {
@@ -55,7 +65,25 @@ namespace IveGrid3D
             entity.Y = double.Parse(node.SelectSingleNode("Y")?.InnerText ?? string.Empty);
         }
 
-        private ObjectWrapper Create3DObject(PowerEntity entity, System.Windows.Media.Color color, double scale)
+        private double GetZPosition(double x, double y, double scale)
+        {
+            double z = 0;
+            var halfExtent = scale / 2;
+            var xMin = x - halfExtent;
+            var yMin = y - halfExtent;
+            var xMax = x + halfExtent;
+            var yMax = y + halfExtent;
+            foreach (var obj in instantiatedObject)
+            {
+                if ((obj.X < xMax) & (obj.X > xMin) & (obj.Y < yMax) & (obj.Y > yMin))
+                    z += scale;
+            }
+
+            return z;
+        }
+
+
+        private ObjectWrapper Create3DObject(PowerEntity entity, Color color, double scale)
         {
             Utility.ToLatLon(entity.X, entity.Y, 34, out var x, out var y);
             if (mapper.IsInRange(x, y)) return null;
@@ -77,7 +105,7 @@ namespace IveGrid3D
                     Children = new Transform3DCollection()
                     {
                          new ScaleTransform3D(scale, scale, scale),
-                         new TranslateTransform3D(position.X,  position.Y, 0)
+                         new TranslateTransform3D(position.X,  position.Y, GetZPosition(position.X,position.Y,scale))
                     }
 
                 }
@@ -86,6 +114,7 @@ namespace IveGrid3D
             mainModel3DGroup.Children.Add(surfaceModel);
 
             var newObject = new ObjectWrapper(surfaceModel);
+            instantiatedObject.Add(newObject);
             return newObject;
         }
 
@@ -99,7 +128,7 @@ namespace IveGrid3D
 
             var nodeListSubstation = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Substations/SubstationEntity");
             var nodeListSwitch = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Switches/SwitchEntity");
-            var nodeListLines = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Lines/LineEntity");
+            //  var nodeListLines = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Lines/LineEntity");
             var nodeListNode = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Nodes/NodeEntity");
 
 
@@ -127,16 +156,18 @@ namespace IveGrid3D
 
             //foreach (XmlNode item in nodeListLines)
             //{
-            //    var line = new LineEntity();
-            //    line.Id = long.Parse(item.SelectSingleNode("Id").InnerText);
-            //    line.Name = item.SelectSingleNode("Name").InnerText;
-            //    line.IsUnderground = bool.Parse(item.SelectSingleNode("IsUnderground").InnerText);
-            //    line.LineType = item.SelectSingleNode("LineType").InnerText;
-            //    line.R = float.Parse(item.SelectSingleNode("R").InnerText);
-            //    line.FirstEnd = long.Parse(item.SelectSingleNode("FirstEnd").InnerText);
-            //    line.SecondEnd = long.Parse(item.SelectSingleNode("SecondEnd").InnerText);
-            //    line.ConductorMaterial = item.SelectSingleNode("ConductorMaterial").InnerText;
-            //    line.ThermalConstantHeat = long.Parse(item.SelectSingleNode("ThermalConstantHeat").InnerText);
+            //    var line = new LineEntity
+            //    {
+            //        Id = long.Parse(item.SelectSingleNode("Id")?.InnerText ?? string.Empty),
+            //        Name = item.SelectSingleNode("Name")?.InnerText,
+            //        IsUnderground = bool.Parse(item.SelectSingleNode("IsUnderground")?.InnerText ?? string.Empty),
+            //        LineType = item.SelectSingleNode("LineType")?.InnerText,
+            //        R = float.Parse(item.SelectSingleNode("R")?.InnerText ?? string.Empty),
+            //        FirstEnd = long.Parse(item.SelectSingleNode("FirstEnd")?.InnerText ?? string.Empty),
+            //        SecondEnd = long.Parse(item.SelectSingleNode("SecondEnd")?.InnerText ?? string.Empty),
+            //        ConductorMaterial = item.SelectSingleNode("ConductorMaterial")?.InnerText,
+            //        ThermalConstantHeat = long.Parse(item.SelectSingleNode("ThermalConstantHeat")?.InnerText ?? string.Empty)
+            //    };
             //    lines.Add(line.Id, line);
             //}
 
