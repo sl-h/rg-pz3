@@ -369,7 +369,7 @@ namespace IveGrid3D
 
         }
 
-        void CreateSegment(double x1, double y1, double x2, double y2)
+        private void CreateSegment(double x1, double y1, double x2, double y2)
         {
             for (double i = 0; i < 1; i += 0.1)
             {
@@ -378,7 +378,8 @@ namespace IveGrid3D
                 CreateLine(0.1, dx, dy);
             }
         }
-        double Lerp(double v0, double v1, double t)
+
+        private double Lerp(double v0, double v1, double t)
         {
             return (1 - t) * v0 + t * v1;
         }
