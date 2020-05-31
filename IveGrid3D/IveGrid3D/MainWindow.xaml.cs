@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -9,6 +10,7 @@ using System.Windows.Shapes;
 using System.Xml;
 using HelixToolkit.Wpf;
 using WpfApp1.Model;
+using Point = WpfApp1.Model.Point;
 
 namespace IveGrid3D
 {
@@ -219,7 +221,17 @@ namespace IveGrid3D
                 var vn = mapper.Convert(line.Vertices[line.Vertices.Count - 1].X, line.Vertices[line.Vertices.Count - 1].Y);
 
 
-                CreateSegment(firstEnd.X,
+
+                //CreateLineSegment(-5,
+                //    -5,
+                //    5,
+                //    5);
+
+                #region hideTHis
+
+
+
+                CreateLineSegment(firstEnd.X,
                     firstEnd.Y,
                     v1.X,
                     v1.Y);
@@ -229,21 +241,20 @@ namespace IveGrid3D
                     var p1 = mapper.Convert(line.Vertices[i].X, line.Vertices[i].Y);
                     var p2 = mapper.Convert(line.Vertices[i + 1].X, line.Vertices[i + 1].Y);
 
-                    CreateSegment(p1.X,
+                    CreateLineSegment(p1.X,
                                   p1.Y,
                                   p2.X,
                                   p2.Y);
                 }
 
-                CreateSegment(vn.X,
+                CreateLineSegment(vn.X,
                     vn.Y,
                     secondEnd.X,
                     secondEnd.Y);
 
+                #endregion
 
             }
-
-
             // foreach (var path in iterator.FindPaths(entities, spots, lines.Values.ToList()))
             {
                 //#region Sa prekalapanjem
@@ -308,14 +319,63 @@ namespace IveGrid3D
             }
         }
 
+        private double width = 0.05;
+        private void CreateLineSegment(double x1, double y1, double x2, double y2)
+        {
+            var dx = x2 - x1;
+            var dy = y2 - y1;
+
+            var normal = new Vector3D(-dy, dx, 0);
+            normal.Normalize();
+
+            var offset = normal * width;
+
+            var leftSide1 = new Vector3D(x1, y1, 0) - offset;
+            var rightSide1 = new Vector3D(x1, y1, 0) + offset;
+
+            var leftSide2 = new Vector3D(x2, y2, 0) - offset;
+            var rightSide2 = new Vector3D(x2, y2, 0) + offset;
+
+            var mesh = new MeshGeometry3D();
+            mesh.Positions.Add((Point3D)leftSide1);
+            mesh.Positions.Add((Point3D)leftSide2);
+            mesh.Positions.Add((Point3D)rightSide1);
+            mesh.Positions.Add((Point3D)rightSide2);
+
+            mesh.TriangleIndices.Add(0);
+            mesh.TriangleIndices.Add(1);
+            mesh.TriangleIndices.Add(3);
+
+            mesh.TriangleIndices.Add(0);
+            mesh.TriangleIndices.Add(3);
+            mesh.TriangleIndices.Add(2);
+
+
+            var mat = new DiffuseMaterial { Brush = new SolidColorBrush(Colors.DarkRed) };
+            var surfaceModel = new GeometryModel3D(mesh, mat)
+            {
+                BackMaterial = mat,
+                Transform = new Transform3DGroup()
+                {
+                    Children = new Transform3DCollection()
+                    {
+                         new TranslateTransform3D(0,  0, .1)
+                    }
+
+                }
+            };
+
+            mainModel3DGroup.Children.Add(surfaceModel);
+
+        }
+
         void CreateSegment(double x1, double y1, double x2, double y2)
         {
-            for (double i = 0; i < 1; i += 0.2)
+            for (double i = 0; i < 1; i += 0.1)
             {
                 var dx = Lerp(x1, x2, i);
                 var dy = Lerp(y1, y2, i);
-
-                CreateLine(0.05, dx, dy);
+                CreateLine(0.1, dx, dy);
             }
         }
         double Lerp(double v0, double v1, double t)
@@ -323,13 +383,6 @@ namespace IveGrid3D
             return (1 - t) * v0 + t * v1;
         }
 
-        private double GetY(double x1, double y1, double x2, double y2, double x)
-        {
-            var m = (y2 - y1) / (x2 - x1);
-            var b = y1 - m * x1;
-            return m * x + b;
-
-        }
         private void InitializePositionMapper()
         {
             mapper = new PositionMapper(MapScale, 0, 45.2325, 19.793909, 45.277031, 19.894459);
