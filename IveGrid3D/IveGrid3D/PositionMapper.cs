@@ -33,7 +33,12 @@ namespace IveGrid3D
 
         public bool IsInRange(double lon, double lat)
         {
-            return !((lon < xMax) & (lon > xMin) & (lat < yMax) & (lat > yMin));
+            return ((lon < xMax) & (lon > xMin) & (lat < yMax) & (lat > yMin));
+        }
+
+        public bool IsInSceneRange(double x, double y)
+        {
+            return ((x <= 5) & (x > -5) & (y < 5) & (y > -5));
         }
     }
 }

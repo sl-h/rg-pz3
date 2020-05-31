@@ -1,37 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
+using System.Windows.Shapes;
 using System.Xml;
 using HelixToolkit.Wpf;
 using WpfApp1.Model;
 
 namespace IveGrid3D
 {
-    // Todo: +Calculate delta coefficient (min max coordinate to min max positions in 3d scene)
-    // Todo: +Coordinate to position 
-    // Todo: +Create and place cubes 
-    // Todo: Lines 
-
-    public class ObjectWrapper
+    public class LineContainer
     {
-        public GeometryModel3D Model { get; }
-        public double X;
-        public double Y;
-        public double Z;
-        public ObjectWrapper(GeometryModel3D model)
+        public LineContainer(ObjectWrapper firstEnd, ObjectWrapper secondEnd, LineEntity entity)
         {
-            this.Model = model;
-            X = model.Bounds.Location.X;
-            Y = model.Bounds.Location.Y;
-            Z = model.Bounds.Location.Z;
-            if (Model != null)
-            {
-
-            }
+            FirstEnd = firstEnd;
+            SecondEnd = secondEnd;
+            Entity = entity;
         }
+
+        public ObjectWrapper FirstEnd { get; }
+        public ObjectWrapper SecondEnd { get; }
+        public LineEntity Entity { get; }
     }
 
 
@@ -40,8 +32,10 @@ namespace IveGrid3D
         private const double MapScale = 10;
         private const string ImagePath = @"D:\fax\rg_pz3\IveGrid3D\IveGrid3D\Assets\Images\map.jpg";
         private readonly Model3DGroup mainModel3DGroup = new Model3DGroup();
-        private PositionMapper mapper;
         private readonly List<ObjectWrapper> instantiatedObject = new List<ObjectWrapper>();
+        private readonly Dictionary<long, LineContainer> lines = new Dictionary<long, LineContainer>();
+
+        private PositionMapper mapper;
 
         public MainWindow()
         {
@@ -82,11 +76,36 @@ namespace IveGrid3D
             return z;
         }
 
+        private void CreateLine(double scale, double x, double y)
+        {
+
+            var builder = new MeshBuilder();
+            builder.AddCube();
+            var cube = builder.ToMesh();
+
+            var mat = new DiffuseMaterial { Brush = new SolidColorBrush(Colors.BlueViolet) };
+
+            var surfaceModel = new GeometryModel3D(cube, mat)
+            {
+                BackMaterial = mat,
+                Transform = new Transform3DGroup()
+                {
+                    Children = new Transform3DCollection()
+                    {
+                        new ScaleTransform3D(scale, scale, scale),
+                        new TranslateTransform3D(x,  y, 1)
+                    }
+
+                }
+            };
+
+            mainModel3DGroup.Children.Add(surfaceModel);
+        }
 
         private ObjectWrapper Create3DObject(PowerEntity entity, Color color, double scale)
         {
             Utility.ToLatLon(entity.X, entity.Y, 34, out var x, out var y);
-            if (mapper.IsInRange(x, y)) return null;
+            if (mapper.IsInRange(x, y) == false) return null;
 
             var position = mapper.Convert(x, y);
 
@@ -113,7 +132,7 @@ namespace IveGrid3D
 
             mainModel3DGroup.Children.Add(surfaceModel);
 
-            var newObject = new ObjectWrapper(surfaceModel);
+            var newObject = new ObjectWrapper(surfaceModel, entity);
             instantiatedObject.Add(newObject);
             return newObject;
         }
@@ -128,7 +147,7 @@ namespace IveGrid3D
 
             var nodeListSubstation = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Substations/SubstationEntity");
             var nodeListSwitch = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Switches/SwitchEntity");
-            //  var nodeListLines = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Lines/LineEntity");
+            var nodeListLines = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Lines/LineEntity");
             var nodeListNode = xmlDoc.DocumentElement.SelectNodes("/NetworkModel/Nodes/NodeEntity");
 
 
@@ -154,22 +173,75 @@ namespace IveGrid3D
                 var spot = Create3DObject(entity, System.Windows.Media.Color.FromRgb(0, 0, 255), .1);
             }
 
-            //foreach (XmlNode item in nodeListLines)
-            //{
-            //    var line = new LineEntity
-            //    {
-            //        Id = long.Parse(item.SelectSingleNode("Id")?.InnerText ?? string.Empty),
-            //        Name = item.SelectSingleNode("Name")?.InnerText,
-            //        IsUnderground = bool.Parse(item.SelectSingleNode("IsUnderground")?.InnerText ?? string.Empty),
-            //        LineType = item.SelectSingleNode("LineType")?.InnerText,
-            //        R = float.Parse(item.SelectSingleNode("R")?.InnerText ?? string.Empty),
-            //        FirstEnd = long.Parse(item.SelectSingleNode("FirstEnd")?.InnerText ?? string.Empty),
-            //        SecondEnd = long.Parse(item.SelectSingleNode("SecondEnd")?.InnerText ?? string.Empty),
-            //        ConductorMaterial = item.SelectSingleNode("ConductorMaterial")?.InnerText,
-            //        ThermalConstantHeat = long.Parse(item.SelectSingleNode("ThermalConstantHeat")?.InnerText ?? string.Empty)
-            //    };
-            //    lines.Add(line.Id, line);
-            //}
+            foreach (XmlNode item in nodeListLines)
+            {
+                var line = new LineEntity
+                {
+                    Id = long.Parse(item.SelectSingleNode("Id")?.InnerText ?? string.Empty),
+                    Name = item.SelectSingleNode("Name")?.InnerText,
+                    IsUnderground = bool.Parse(item.SelectSingleNode("IsUnderground")?.InnerText ?? string.Empty),
+                    LineType = item.SelectSingleNode("LineType")?.InnerText,
+                    R = float.Parse(item.SelectSingleNode("R")?.InnerText ?? string.Empty),
+                    FirstEnd = long.Parse(item.SelectSingleNode("FirstEnd")?.InnerText ?? string.Empty),
+                    SecondEnd = long.Parse(item.SelectSingleNode("SecondEnd")?.InnerText ?? string.Empty),
+                    ConductorMaterial = item.SelectSingleNode("ConductorMaterial")?.InnerText,
+                    ThermalConstantHeat = long.Parse(item.SelectSingleNode("ThermalConstantHeat")?.InnerText ?? string.Empty),
+                    Vertices = new List<Point>()
+                };
+
+                foreach (XmlNode pointNode in item.ChildNodes[9].ChildNodes)
+                {
+                    var xRaw = double.Parse(pointNode.SelectSingleNode("X")?.InnerText ?? string.Empty);
+                    var yRaw = double.Parse(pointNode.SelectSingleNode("Y")?.InnerText ?? string.Empty);
+                    Utility.ToLatLon(xRaw, yRaw, 34, out var lat, out var lon);
+
+                    line.Vertices.Add(new Point()
+                    {
+                        X = lat,
+                        Y = lon
+                    });
+                }
+
+                var firstEnd = instantiatedObject.FirstOrDefault(x => x.Entity.Id == line.FirstEnd);
+                var secondEnd = instantiatedObject.FirstOrDefault(x => x.Entity.Id == line.SecondEnd);
+                if (firstEnd == null || secondEnd == null) continue;
+
+
+                Utility.ToLatLon(firstEnd.Entity.X, firstEnd.Entity.Y, 34, out var xFirst, out var yFirst);
+                Utility.ToLatLon(secondEnd.Entity.X, secondEnd.Entity.Y, 34, out var xSecond, out var ySecond);
+
+                if (mapper.IsInRange(xFirst, yFirst) == false || mapper.IsInRange(xSecond, ySecond) == false) continue;
+
+                var lineComponent = new LineContainer(firstEnd, secondEnd, line);
+                lines.Add(line.Id, lineComponent);
+
+                var v1 = mapper.Convert(line.Vertices[0].X, line.Vertices[0].Y);
+                var vn = mapper.Convert(line.Vertices[line.Vertices.Count - 1].X, line.Vertices[line.Vertices.Count - 1].Y);
+
+
+                CreateSegment(firstEnd.X,
+                    firstEnd.Y,
+                    v1.X,
+                    v1.Y);
+
+                for (int i = 0; i < line.Vertices.Count - 1; i++)
+                {
+                    var p1 = mapper.Convert(line.Vertices[i].X, line.Vertices[i].Y);
+                    var p2 = mapper.Convert(line.Vertices[i + 1].X, line.Vertices[i + 1].Y);
+
+                    CreateSegment(p1.X,
+                                  p1.Y,
+                                  p2.X,
+                                  p2.Y);
+                }
+
+                CreateSegment(vn.X,
+                    vn.Y,
+                    secondEnd.X,
+                    secondEnd.Y);
+
+
+            }
 
 
             // foreach (var path in iterator.FindPaths(entities, spots, lines.Values.ToList()))
@@ -236,6 +308,28 @@ namespace IveGrid3D
             }
         }
 
+        void CreateSegment(double x1, double y1, double x2, double y2)
+        {
+            for (double i = 0; i < 1; i += 0.2)
+            {
+                var dx = Lerp(x1, x2, i);
+                var dy = Lerp(y1, y2, i);
+
+                CreateLine(0.05, dx, dy);
+            }
+        }
+        double Lerp(double v0, double v1, double t)
+        {
+            return (1 - t) * v0 + t * v1;
+        }
+
+        private double GetY(double x1, double y1, double x2, double y2, double x)
+        {
+            var m = (y2 - y1) / (x2 - x1);
+            var b = y1 - m * x1;
+            return m * x + b;
+
+        }
         private void InitializePositionMapper()
         {
             mapper = new PositionMapper(MapScale, 0, 45.2325, 19.793909, 45.277031, 19.894459);

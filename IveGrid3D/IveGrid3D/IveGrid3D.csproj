@@ -67,6 +67,7 @@
     <Compile Include="Model\PowerEntity.cs" />
     <Compile Include="Model\SubstationEntity.cs" />
     <Compile Include="Model\SwitchEntity.cs" />
+    <Compile Include="ObjectWrapper.cs" />
     <Compile Include="Utility.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
