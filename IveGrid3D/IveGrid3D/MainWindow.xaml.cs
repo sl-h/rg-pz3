@@ -14,18 +14,34 @@ using Point = WpfApp1.Model.Point;
 
 namespace IveGrid3D
 {
-    public class LineContainer
+    public interface IPosition
     {
-        public LineContainer(ObjectWrapper firstEnd, ObjectWrapper secondEnd, LineEntity entity)
+        double X { get; }
+        double Y { get; }
+        double Z { get; }
+        bool IsSelected { get; set; }
+        GeometryModel3D Model { get; }
+    }
+
+    public class LineContainer : IPosition
+    {
+        public LineContainer(ObjectWrapper firstEnd, ObjectWrapper secondEnd, LineEntity entity, GeometryModel3D model)
         {
             FirstEnd = firstEnd;
             SecondEnd = secondEnd;
             Entity = entity;
+            Model = model;
         }
 
         public ObjectWrapper FirstEnd { get; }
         public ObjectWrapper SecondEnd { get; }
         public LineEntity Entity { get; }
+        public GeometryModel3D Model { get; }
+
+        public double X => Model.Bounds.Location.X;
+        public double Y => Model.Bounds.Location.Y;
+        public double Z => Model.Bounds.Location.Z;
+        public bool IsSelected { get; set; }
     }
 
 
@@ -61,48 +77,23 @@ namespace IveGrid3D
             entity.Y = double.Parse(node.SelectSingleNode("Y")?.InnerText ?? string.Empty);
         }
 
-        private double GetZPosition(double x, double y, double scale)
+        private double GetZPosition(double x, double y, double scale, IEnumerable<IPosition> positions, double offset)
         {
-            double z = 0;
+            double z = 0.1;
             var halfExtent = scale / 2;
             var xMin = x - halfExtent;
             var yMin = y - halfExtent;
             var xMax = x + halfExtent;
             var yMax = y + halfExtent;
-            foreach (var obj in instantiatedObject)
+            foreach (var obj in positions)
             {
                 if ((obj.X < xMax) & (obj.X > xMin) & (obj.Y < yMax) & (obj.Y > yMin))
-                    z += scale;
+                    z += offset;
             }
 
             return z;
         }
 
-        private void CreateLine(double scale, double x, double y)
-        {
-
-            var builder = new MeshBuilder();
-            builder.AddCube();
-            var cube = builder.ToMesh();
-
-            var mat = new DiffuseMaterial { Brush = new SolidColorBrush(Colors.BlueViolet) };
-
-            var surfaceModel = new GeometryModel3D(cube, mat)
-            {
-                BackMaterial = mat,
-                Transform = new Transform3DGroup()
-                {
-                    Children = new Transform3DCollection()
-                    {
-                        new ScaleTransform3D(scale, scale, scale),
-                        new TranslateTransform3D(x,  y, 1)
-                    }
-
-                }
-            };
-
-            mainModel3DGroup.Children.Add(surfaceModel);
-        }
 
         private ObjectWrapper Create3DObject(PowerEntity entity, Color color, double scale)
         {
@@ -126,7 +117,7 @@ namespace IveGrid3D
                     Children = new Transform3DCollection()
                     {
                          new ScaleTransform3D(scale, scale, scale),
-                         new TranslateTransform3D(position.X,  position.Y, GetZPosition(position.X,position.Y,scale))
+                         new TranslateTransform3D(position.X,  position.Y, GetZPosition(position.X,position.Y,scale,instantiatedObject,scale))
                     }
 
                 }
@@ -214,27 +205,22 @@ namespace IveGrid3D
 
                 if (mapper.IsInRange(xFirst, yFirst) == false || mapper.IsInRange(xSecond, ySecond) == false) continue;
 
-                var lineComponent = new LineContainer(firstEnd, secondEnd, line);
-                lines.Add(line.Id, lineComponent);
 
                 var v1 = mapper.Convert(line.Vertices[0].X, line.Vertices[0].Y);
                 var vn = mapper.Convert(line.Vertices[line.Vertices.Count - 1].X, line.Vertices[line.Vertices.Count - 1].Y);
 
 
 
-                //CreateLineSegment(-5,
-                //    -5,
-                //    5,
-                //    5);
-
                 #region hideTHis
 
-
+                vertexId = 0;
+                var mesh = new MeshGeometry3D();
 
                 CreateLineSegment(firstEnd.X,
                     firstEnd.Y,
                     v1.X,
-                    v1.Y);
+                    v1.Y,
+                    mesh);
 
                 for (int i = 0; i < line.Vertices.Count - 1; i++)
                 {
@@ -244,14 +230,33 @@ namespace IveGrid3D
                     CreateLineSegment(p1.X,
                                   p1.Y,
                                   p2.X,
-                                  p2.Y);
+                                  p2.Y,
+                                  mesh);
                 }
 
                 CreateLineSegment(vn.X,
                     vn.Y,
                     secondEnd.X,
-                    secondEnd.Y);
+                    secondEnd.Y,
+                    mesh);
 
+
+                var mat = new DiffuseMaterial { Brush = new SolidColorBrush(Colors.DarkRed) };
+                var surfaceModel = new GeometryModel3D(mesh, mat)
+                {
+                    BackMaterial = mat,
+                    Transform = new Transform3DGroup()
+                    {
+                        Children = new Transform3DCollection()
+                        {
+                            new TranslateTransform3D(0,  0, 0.01)
+                        }
+
+                    }
+                };
+                mainModel3DGroup.Children.Add(surfaceModel);
+                var lineComponent = new LineContainer(firstEnd, secondEnd, line, surfaceModel);
+                lines.Add(line.Id, lineComponent);
                 #endregion
 
             }
@@ -319,8 +324,9 @@ namespace IveGrid3D
             }
         }
 
-        private double width = 0.05;
-        private void CreateLineSegment(double x1, double y1, double x2, double y2)
+        private readonly double width = 0.05;
+        private int vertexId;
+        private void CreateLineSegment(double x1, double y1, double x2, double y2, MeshGeometry3D mesh)
         {
             var dx = x2 - x1;
             var dy = y2 - y1;
@@ -336,53 +342,21 @@ namespace IveGrid3D
             var leftSide2 = new Vector3D(x2, y2, 0) - offset;
             var rightSide2 = new Vector3D(x2, y2, 0) + offset;
 
-            var mesh = new MeshGeometry3D();
             mesh.Positions.Add((Point3D)leftSide1);
             mesh.Positions.Add((Point3D)leftSide2);
             mesh.Positions.Add((Point3D)rightSide1);
             mesh.Positions.Add((Point3D)rightSide2);
 
-            mesh.TriangleIndices.Add(0);
-            mesh.TriangleIndices.Add(1);
-            mesh.TriangleIndices.Add(3);
+            mesh.TriangleIndices.Add(vertexId + 0);
+            mesh.TriangleIndices.Add(vertexId + 1);
+            mesh.TriangleIndices.Add(vertexId + 3);
 
-            mesh.TriangleIndices.Add(0);
-            mesh.TriangleIndices.Add(3);
-            mesh.TriangleIndices.Add(2);
-
-
-            var mat = new DiffuseMaterial { Brush = new SolidColorBrush(Colors.DarkRed) };
-            var surfaceModel = new GeometryModel3D(mesh, mat)
-            {
-                BackMaterial = mat,
-                Transform = new Transform3DGroup()
-                {
-                    Children = new Transform3DCollection()
-                    {
-                         new TranslateTransform3D(0,  0, .1)
-                    }
-
-                }
-            };
-
-            mainModel3DGroup.Children.Add(surfaceModel);
-
+            mesh.TriangleIndices.Add(vertexId + 0);
+            mesh.TriangleIndices.Add(vertexId + 3);
+            mesh.TriangleIndices.Add(vertexId + 2);
+            vertexId += 4;
         }
 
-        private void CreateSegment(double x1, double y1, double x2, double y2)
-        {
-            for (double i = 0; i < 1; i += 0.1)
-            {
-                var dx = Lerp(x1, x2, i);
-                var dy = Lerp(y1, y2, i);
-                CreateLine(0.1, dx, dy);
-            }
-        }
-
-        private double Lerp(double v0, double v1, double t)
-        {
-            return (1 - t) * v0 + t * v1;
-        }
 
         private void InitializePositionMapper()
         {
@@ -398,7 +372,6 @@ namespace IveGrid3D
             var modelVisual = new ModelVisual3D { Content = mainModel3DGroup };
             Viewport.Children.Add(modelVisual);
         }
-
         private void DrawMapSurface()
         {
             var builder = new MeshBuilder();

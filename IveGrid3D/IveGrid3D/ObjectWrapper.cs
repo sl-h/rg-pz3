@@ -1,26 +1,29 @@
-﻿using System.Windows.Media.Media3D;
+﻿using System.Collections.Generic;
+using System.Windows.Media.Media3D;
 using WpfApp1.Model;
 
 namespace IveGrid3D
 {
-    public class ObjectWrapper
+    public class ObjectWrapper : IPosition
     {
         public PowerEntity Entity;
         public GeometryModel3D Model { get; }
         /// <summary>
         /// Position in scene
         /// </summary>
-        public readonly double X;
+        public double X { get; }
 
         /// <summary>
         /// Position in scene
         /// </summary>
-        public readonly double Y;
+        public double Y { get; }
 
         /// <summary>
         /// Position in scene
         /// </summary>
-        public double Z;
+        public double Z { get; }
+
+        public bool IsSelected { get; set; }
 
         public ObjectWrapper(GeometryModel3D model, PowerEntity entity)
         {

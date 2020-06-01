@@ -1,4 +1,5 @@
-﻿using System.Windows.Input;
+﻿using System.Threading.Tasks;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
@@ -7,11 +8,6 @@ namespace IveGrid3D
     public partial class MainWindow
     {
         private GeometryModel3D hitGeometry;
-        private readonly DiffuseMaterial blue = new DiffuseMaterial()
-        {
-            Color = Colors.Blue
-        };
-
 
         private void OnLeftMouseButtonUp(object sender, MouseButtonEventArgs e)
         {
@@ -44,7 +40,7 @@ namespace IveGrid3D
         {
 
         }
-        void mainViewport_MouseDown(object sender, MouseButtonEventArgs e)
+        void MainViewport_MouseDown(object sender, MouseButtonEventArgs e)
         {
 
             var mousePosition = e.GetPosition(Viewport);
@@ -67,18 +63,29 @@ namespace IveGrid3D
             if (rayResult != null)
             {
 
-                DiffuseMaterial darkSide =
-                    new DiffuseMaterial(new SolidColorBrush(
-                        System.Windows.Media.Colors.Red));
+                DiffuseMaterial darkSide = new DiffuseMaterial(new SolidColorBrush(Colors.Red));
                 bool gasit = false;
-                for (int i = 0; i < instantiatedObject.Count; i++)
+                foreach (var obj in instantiatedObject)
                 {
-                    if (instantiatedObject[i].Model == rayResult.ModelHit)
-                    {
-                        hitGeometry = (GeometryModel3D)rayResult.ModelHit;
-                        gasit = true;
-                        hitGeometry.Material = darkSide;
-                    }
+                    if (obj.Model != rayResult.ModelHit) continue;
+                    if (obj.IsSelected) continue;
+                    gasit = true;
+                    hitGeometry = (GeometryModel3D)rayResult.ModelHit;
+                    ScheduleColorReset(obj);
+                    hitGeometry.Material = darkSide;
+                }
+                foreach (var obj in lines.Values)
+                {
+                    if (obj.Model != rayResult.ModelHit) continue;
+                    if (obj.IsSelected || obj.FirstEnd.IsSelected || obj.SecondEnd.IsSelected) continue;
+                    gasit = true;
+                    hitGeometry = (GeometryModel3D)rayResult.ModelHit;
+                    ScheduleColorReset(obj);
+                    ScheduleColorReset(obj.FirstEnd);
+                    ScheduleColorReset(obj.SecondEnd);
+                    hitGeometry.Material = darkSide;
+                    obj.FirstEnd.Model.Material = darkSide;
+                    obj.SecondEnd.Model.Material = darkSide;
                 }
                 if (!gasit)
                 {
@@ -89,9 +96,18 @@ namespace IveGrid3D
             return HitTestResultBehavior.Stop;
         }
 
-        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        async void ScheduleColorReset(IPosition position)
         {
+            position.IsSelected = true;
+            var previousMaterial = position.Model.Material;
+            await DelayThenDoSomeWork();
+            position.Model.Material = previousMaterial;
+            position.IsSelected = false;
+        }
 
+        private async Task DelayThenDoSomeWork()
+        {
+            await Task.Delay(2000);
         }
     }
 }
