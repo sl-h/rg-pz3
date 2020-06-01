@@ -1,7 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
+using WpfApp1.Model;
 
 namespace IveGrid3D
 {
@@ -70,6 +72,8 @@ namespace IveGrid3D
                     if (obj.Model != rayResult.ModelHit) continue;
                     if (obj.IsSelected) continue;
                     gasit = true;
+                    tooltip.Content = ToolTipHelper.Serialize(new List<PowerEntity>() { obj.Entity });
+                    tooltip.IsOpen = true;
                     hitGeometry = (GeometryModel3D)rayResult.ModelHit;
                     ScheduleColorReset(obj);
                     hitGeometry.Material = darkSide;
@@ -79,6 +83,9 @@ namespace IveGrid3D
                     if (obj.Model != rayResult.ModelHit) continue;
                     if (obj.IsSelected || obj.FirstEnd.IsSelected || obj.SecondEnd.IsSelected) continue;
                     gasit = true;
+                    tooltip.IsOpen = true;
+
+                    tooltip.Content = $"Type: Line Entity\nId: {obj.Entity.Id}\nName: {obj.Entity.Name}\nIsUnderground: {obj.Entity.IsUnderground}";
                     hitGeometry = (GeometryModel3D)rayResult.ModelHit;
                     ScheduleColorReset(obj);
                     ScheduleColorReset(obj.FirstEnd);
@@ -96,13 +103,15 @@ namespace IveGrid3D
             return HitTestResultBehavior.Stop;
         }
 
-        async void ScheduleColorReset(IPosition position)
+        private async void ScheduleColorReset(IPosition position)
         {
             position.IsSelected = true;
             var previousMaterial = position.Model.Material;
             await DelayThenDoSomeWork();
             position.Model.Material = previousMaterial;
             position.IsSelected = false;
+            tooltip.IsOpen = false;
+
         }
 
         private async Task DelayThenDoSomeWork()

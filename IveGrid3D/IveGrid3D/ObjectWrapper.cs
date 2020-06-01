@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Windows;
 using System.Windows.Media.Media3D;
 using WpfApp1.Model;
 
@@ -34,8 +35,13 @@ namespace IveGrid3D
             Z = model.Bounds.Location.Z;
             if (Model != null)
             {
-
             }
+        }
+
+        void OnHoverOverNode(object sender, RoutedEventArgs e)
+        {
+            //MainWindow.tool.Content = ToolTipHelper.Serialize(new List<PowerEntity>() { Entity });
+
         }
     }
 }

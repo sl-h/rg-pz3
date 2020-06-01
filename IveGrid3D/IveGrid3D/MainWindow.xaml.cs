@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -54,9 +55,17 @@ namespace IveGrid3D
         private readonly Dictionary<long, LineContainer> lines = new Dictionary<long, LineContainer>();
 
         private PositionMapper mapper;
+        public static ToolTip tooltip;
+
+
+        void OnHoverOverNode(object sender, RoutedEventArgs e)
+        {
+
+        }
 
         public MainWindow()
         {
+            tooltip = new ToolTip();
             InitializeComponent();
             AddModelGroupToViewPort();
             Viewport.PanGesture = new MouseGesture(MouseAction.LeftClick);
@@ -64,6 +73,7 @@ namespace IveGrid3D
             InitializePositionMapper();
             DrawMapSurface();
             LoadData();
+            Viewport.ToolTip = tooltip;
 
             //Viewport.Camera.LookDirection = new Vector3D(0, 0.00000000001, -1);
 
