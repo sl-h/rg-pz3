@@ -65,7 +65,7 @@ namespace IveGrid3D
             if (rayResult != null)
             {
 
-                DiffuseMaterial darkSide = new DiffuseMaterial(new SolidColorBrush(Colors.Red));
+                DiffuseMaterial darkSide = new DiffuseMaterial(new SolidColorBrush(Colors.Purple));
                 bool gasit = false;
                 foreach (var obj in instantiatedObject)
                 {

@@ -25,7 +25,7 @@ namespace IveGrid3D
         public double Z { get; }
 
         public bool IsSelected { get; set; }
-
+        public int ConnectionCount;
         public ObjectWrapper(GeometryModel3D model, PowerEntity entity)
         {
             Model = model;

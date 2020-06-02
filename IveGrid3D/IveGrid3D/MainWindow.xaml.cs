@@ -159,7 +159,7 @@ namespace IveGrid3D
             {
                 var entity = new SubstationEntity();
                 ParsePowerEntity(node, entity);
-                var spot = Create3DObject(entity, System.Windows.Media.Color.FromRgb(0, 255, 0), .1);
+                var spot = Create3DObject(entity, System.Windows.Media.Color.FromRgb(255, 0, 0), .1);
             }
 
             foreach (XmlNode node in nodeListNode)
@@ -167,14 +167,14 @@ namespace IveGrid3D
                 var entity = new NodeEntity();
                 ParsePowerEntity(node, entity);
 
-                var spot = Create3DObject(entity, System.Windows.Media.Color.FromRgb(255, 255, 0), .1);
+                var spot = Create3DObject(entity, System.Windows.Media.Color.FromRgb(255, 0, 0), .1);
             }
 
             foreach (XmlNode node in nodeListSwitch)
             {
                 var entity = new SwitchEntity();
                 ParsePowerEntity(node, entity);
-                var spot = Create3DObject(entity, System.Windows.Media.Color.FromRgb(0, 0, 255), .1);
+                var spot = Create3DObject(entity, System.Windows.Media.Color.FromRgb(255, 0, 0), .1);
             }
 
             foreach (XmlNode item in nodeListLines)
@@ -210,6 +210,8 @@ namespace IveGrid3D
                 var secondEnd = instantiatedObject.FirstOrDefault(x => x.Entity.Id == line.SecondEnd);
                 if (firstEnd == null || secondEnd == null) continue;
 
+                firstEnd.ConnectionCount++;
+                secondEnd.ConnectionCount++;
 
                 Utility.ToLatLon(firstEnd.Entity.X, firstEnd.Entity.Y, 34, out var xFirst, out var yFirst);
                 Utility.ToLatLon(secondEnd.Entity.X, secondEnd.Entity.Y, 34, out var xSecond, out var ySecond);
@@ -333,6 +335,24 @@ namespace IveGrid3D
                 //    }
                 //}
             }
+
+            foreach (var obj in instantiatedObject)
+            {
+                if (obj.ConnectionCount < 3)
+                {
+                    obj.Model.Material = new DiffuseMaterial { Brush = new SolidColorBrush(Color.FromRgb(255, 127,127)) };
+                }
+                else if (obj.ConnectionCount >= 3 && obj.ConnectionCount < 5)
+                {
+                    obj.Model.Material = new DiffuseMaterial { Brush = new SolidColorBrush(Color.FromRgb(255, 70,70)) };
+
+                }
+                else
+                {
+                    obj.Model.Material = new DiffuseMaterial { Brush = new SolidColorBrush(Color.FromRgb(255, 0,0)) };
+                }
+            }
+
         }
 
         private readonly double width = 0.05;
