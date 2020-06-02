@@ -68,7 +68,8 @@ namespace IveGrid3D
             tooltip = new ToolTip();
             InitializeComponent();
             AddModelGroupToViewPort();
-            Viewport.PanGesture = new MouseGesture(MouseAction.LeftClick);
+            Viewport.PanGesture = new MouseGesture(MouseAction.MiddleClick);
+            Viewport.PanGesture2 = new MouseGesture(MouseAction.MiddleClick);
             Viewport.RotateGesture = new MouseGesture(MouseAction.RightClick);
             InitializePositionMapper();
             DrawMapSurface();

@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <helix:HelixViewport3D ClipToBounds="True" MouseLeftButtonDown="OnLeftMouseButtonDown" Name="Viewport"
+        <helix:HelixViewport3D ClipToBounds="True" MouseDown="OnLeftMouseButtonDown" Name="Viewport"
                                MouseLeftButtonUp="OnLeftMouseButtonUp" MouseMove="Pan"
                                MouseWheel="MouseWheal" ShowCameraTarget="False">
             <helix:SunLight/>
